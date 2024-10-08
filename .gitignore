@@ -4,6 +4,7 @@ __pycache__/
 *$py.class
 
 # Virtual environment
+nlpenv/
 venv/
 .env/
 *.env
@@ -15,4 +16,8 @@ pip-delete-this-directory.txt
 
 # VS Code settings (if using VS Code)
 .vscode/
+
+# zip files
+*.zip
+*.tar.gz
 
