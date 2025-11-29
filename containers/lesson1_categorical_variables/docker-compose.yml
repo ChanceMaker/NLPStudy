@@ -2,5 +2,8 @@ version: '3'
 services:
   categorical_variables:
     build: .
+    image: categorical-variables:latest  # This matches your Dockerfile
     volumes:
-      - ../../lessons/catagorical_variables:/app/work
+      - ../../lessons/categorical_variables:/app/work
+    ports:
+      - "8888:8888"
