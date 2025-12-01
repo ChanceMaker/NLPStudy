@@ -26,3 +26,6 @@ print("\n")
 onehot = pd.get_dummies(df[['color', 'size']], prefix=['color', 'size'])
 print("After One-Hot Encoding:")
 print(onehot)
+
+print("HEAD value of One-Hot Encoded DataFrame:")
+print(df.head())
