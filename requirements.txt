@@ -1,0 +1,13 @@
+# PDF Processing
+pymupdf==1.23.8
+pdfplumber==0.10.3
+
+# Utilities
+python-dotenv==1.0.0
+rich==13.7.0
+
+# Testing
+pytest==7.4.3
+
+# Data handling
+numpy==1.26.3

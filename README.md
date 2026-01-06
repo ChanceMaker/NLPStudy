@@ -1,63 +1,80 @@
 # NLPStudy
 
-A structured learning project for Natural Language Processing (NLP) and Machine Learning, organized through containerized lessons. This project serves as both a learning environment and a practical reference for NLP concepts and container-based deployments.
+A structured learning project for Natural Language Processing (NLP) and Machine Learning. This project serves as both a learning environment and a practical reference for NLP and ML concepts, focusing on hands-on exercises from Kaggle's Intermediate Machine Learning course.
 
 ## Project Structure
 
 ```
 /
-├── automation/     # Automation scripts and tools
-├── containers/     # Docker configurations for each lesson
-│   └── lesson1_categorical_variables/
-│       ├── Dockerfile
-│       ├── docker-compose.yml
-│       └── requirements.txt
-├── docs/          # Project documentation
-├── lessons/       # NLP study materials and exercises
+├── .github/           # GitHub configuration
+├── data/              # Data storage
+│   ├── pdfs/          # PDF documents for processing
+│   └── processed/     # Processed data outputs
+├── lessons/           # ML/NLP study materials and exercises
 │   └── categorical_variables/
 │       └── categorical_variables.py
-└── res/           # Resources and assets
+├── src/               # Source code
+├── venv/              # Python virtual environment
+├── requirements.txt   # Python dependencies
+└── README.md
 ```
 
 ## Getting Started
 
 ### Prerequisites
-- Docker and Docker Compose
+- Python 3.12+
 - Git
-- Python 3.9+ (for local development)
+- Virtual environment (venv)
 
-### Running a Lesson
-Each lesson is containerized for reproducibility and isolation. To run a lesson:
+### Setup
 
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd NLPStudy
+   ```
+
+2. **Create and activate virtual environment:**
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+## Current Lessons
+
+### 1. Categorical Variables (Kaggle Intermediate ML)
+**Location:** [lessons/categorical_variables/](lessons/categorical_variables/)
+
+**Topics covered:**
+- Handling categorical data in machine learning
+- Three approaches:
+  1. Drop categorical variables
+  2. Ordinal (Label) Encoding
+  3. One-Hot Encoding
+- Understanding cardinality and its impact
+- Handling unknown categories in validation/test data
+
+**Key concepts:**
+- When to use each encoding method
+- Memory and performance trade-offs
+- Train/validation data consistency
+
+**Run the exercise:**
 ```bash
-# Navigate to the lesson's container directory
-cd containers/lesson1_categorical_variables
-
-# Build and run the container
-docker-compose up --build
+python lessons/categorical_variables/categorical_variables.py
 ```
-
-## Lessons Overview
-
-### 1. Categorical Variables
-- Basic handling of categorical data
-- Label Encoding and One-Hot Encoding
-- Practical examples with pandas and scikit-learn
 
 ## Development Environment
 
-### Container-Based Approach
-Each lesson is packaged in its own container, ensuring:
-- Consistent environments
-- Isolated dependencies
-- Reproducible results
-- Version controlled progress
-
-### Local Development
-While containers are the preferred method, you can also work locally:
-1. Create a virtual environment: `python -m venv venv`
-2. Install requirements: `pip install -r containers/lesson*/requirements.txt`
-3. Run scripts directly: `python lessons/*/script.py`
+This project uses a local Python virtual environment for development:
+- **venv/**: Isolated Python environment
+- **requirements.txt**: Project dependencies (pandas, scikit-learn, numpy, etc.)
+- **data/**: Storage for datasets and processed outputs
 
 ## Contributing
 
