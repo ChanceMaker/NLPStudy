@@ -1,0 +1,817 @@
+{
+  "metadata": {
+    "title": "language_understanding_paper.pdf",
+    "author": "",
+    "pages": 12,
+    "paper_name": "Improving Language Understanding By Generative Pre-Training",
+    "used_ocr": true
+  },
+  "pages": [
+    {
+      "page_number": 1,
+      "text": "Improving Language Understanding by Generative Pre-Training Alec Radford Karthik Narasimhan Tim Salimans Ilya Sutskever OpenAl OpenAl OpenAI OpenAl alec@openai.con karthikn@openai.com tim@openai.com ilyasu@openai.com Abstract Natural language understanding comprises a wide range of diverse tasks such as textual entailment, question answering, semantic similarity assessment, and document classification. Although large unlabeled text corpora are abundant, labeled data for learning these specific tasks is scarce, making it challenging for discriminatively trained models to perform adequately. We demonstrate that large gains on these tasks can be realized by generative pre-training of a language model ona diverse corpus of unlabeled text, followed by discriminative fine-tuning on each specific task. In contrast to previous approaches, we make use of task-aware input transformations during fine-tuning to achieve effective transfer while requiring minimal changes to the model architecture. We demonstrate the effectiveness of our approach on a wide range of benchmarks for natural language understanding. Our general task-agnostic model outperforms discriminatively trained models that use architectures specifically crafted for each task, significantly improving upon the state of the art in 9 out of the 12 tasks studied. For instance, we achieve absolute improvements of 8.9% on commonsense reasoning (Stories Cloze Test), 5.7% on question answering (RACE), and 1.5% on textual entailment (MultiNLI). 1 Introduction The ability to learn effectively from raw text is crucial to alleviating the dependence on supervised learning in natural language processing (NLP). Most deep learning methods require substantial amounts of manually labeled data, which restricts their applicability in many domains that suffer from a dearth of annotated resources [61]. In these situations, models that can leverage linguistic information from unlabeled data provide a valuable alternative to gathering more annotation, which can be time-consuming and expensive. Further, even in cases where considerable supervision is available, learning good representations in an unsupervised fashion can provide a significant performance boost. The most compelling evidence for this so far has been the extensive use of pre- trained word embeddings [10, 39, 42] to improve performance on a range of NLP tasks [8, 11, 26, 45]. Leveraging more than word-level information from unlabeled text, however, is challenging for two main reasons. First, it is unclear what type of optimization objectives are most effective at learning text representations that are useful for transfer. Recent research has looked at various objectives such as language modeling [44], machine translation [38], and discourse coherence [22], with each method outperforming the others on different tasks.' Second, there is no consensus on the most effective way to transfer these learned representations to the target task. Existing techniques involve a combination of making task-specific changes to the model architecture [43, 44], using intricate learning schemes [21] and adding auxiliary learning objectives [50]. These uncertainties have made it difficult to develop effective semi-supervised learning approaches for language processing. \"htps://gluebenchmark.com/leaderboard Preprint. Work in progress.",
+      "char_count": 3363,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 2,
+      "text": "In this paper, we explore a semi-supervised approach for language understanding tasks using a combination of unsupervised pre-training and supervised fine-tuning. Our goal is to learn a universal representation that transfers with little adaptation to a wide range of tasks. We assume access to a large corpus of unlabeled text and several datasets with manually annotated training examples (target tasks). Our setup does not require these target tasks to be in the same domain as the unlabeled corpus. We employ a two-stage training procedure. First, we use a language modeling objective on the unlabeled data to learn the initial parameters of a neural network model. Subsequently, we adapt these parameters to a target task using the corresponding supervised objective. For our model architecture, we use the Transformer [62], which has been shown to perform strongly on various tasks such as machine translation [62], document generation [34], and syntactic parsing [29]. This model choice provides us with a more structured memory for handling long-term dependencies in text, compared to alternatives like recurrent networks, resulting in robust transfer performance across diverse tasks. During transfer, we utilize task-specific input adaptations derived from traversal-style approaches [52], which process structured text input as a single contiguous sequence of tokens. As we demonstrate in our experiments, these adaptations enable us to fine-tune effectively with minimal changes to the architecture of the pre-trained model. We evaluate our approach on four types of language understanding tasks \u2014 natural language inference, question answering, semantic similarity, and text classification. Our general task-agnostic model outperforms discriminatively trained models that employ architectures specifically crafted for each task, significantly improving upon the state of the art in 9 out of the 12 tasks studied. For instance, we achieve absolute improvements of 8.9% on commonsense reasoning (Stories Cloze Test) [40], 5.7% on question answering (RACE) [30], 1.5% on textual entailment (MultiNLI) [66] and 5.5% on the recently introduced GLUE multi-task benchmark [64]. We also analyzed zero-shot behaviors of the pre-trained model on four different settings and demonstrate that it acquires useful linguistic knowledge for downstream tasks. 2 Related Work Semi-supervised learning for NLP Our work broadly falls under the category of semi-supervised learning for natural language. This paradigm has attracted significant interest, with applications to tasks like sequence labeling [24, 33, 57] or text classification [41, 70]. The earliest approaches used unlabeled data to compute word-level or phrase-level statistics, which were then used as features in a supervised model [33]. Over the last few years, researchers have demonstrated the benefits of using word embeddings [11, 39, 42], which are trained on unlabeled corpora, to improve performance on a variety of tasks [8, 11, 26, 45]. These approaches, however, mainly transfer word-level information, whereas we aim to capture higher-level semantics. Recent approaches have investigated learning and utilizing more than word-level semantics from unlabeled data. Phrase-level or sentence-level embeddings, which can be trained using an unlabeled corpus, have been used to encode text into suitable vector representations for various target tasks [28, 32, 1, 36, 22, 12, 56, 31]. Unsupervised pre-training Unsupervised pre-training is a special case of semi-supervised learning where the goal is to find a good initialization point instead of modifying the supervised learning objective. Early works explored the use of the technique in image classification (20, 49, 63] and regression tasks [3]. Subsequent research [15] demonstrated that pre-training acts as a regularization scheme, enabling better generalization in deep neural networks. In recent work, the method has been used to help train deep neural networks on various tasks like image classification [69], speech recognition [68], entity disambiguation [17] and machine translation [48]. The closest line of work to ours involves pre-training a neural network using a language modeling objective and then fine-tuning it on a target task with supervision. Dai et al. [13] and Howard and Ruder [21] follow this method to improve text classification. However, although the pre-training phase helps capture some linguistic information, their usage of LSTM models restricts their prediction ability to a short range. In contrast, our choice of transformer networks allows us to capture longer- range linguistic structure, as demonstrated in our experiments. Further, we also demonstrate the effectiveness of our model on a wider range of tasks including natural language inference, paraphrase detection and story completion. Other approaches [43, 44, 38] use hidden representations from a",
+      "char_count": 4914,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 3,
+      "text": "pre-trained language or machine translation model as auxiliary features while training a supervised model on the target task. This involves a substantial amount of new parameters for each separate target task, whereas we require minimal changes to our model architecture during transfer. Auxiliary training objectives Adding auxiliary unsupervised training objectives is an alternative form of semi-supervised learning. Early work by Collobert and Weston [10] used a wide variety of auxiliary NLP tasks such as POS tagging, chunking, named entity recognition, and language modeling to improve semantic role labeling. More recently, Rei [50] added an auxiliary language modeling objective to their target task objective and demonstrated performance gains on sequence labeling tasks. Our experiments also use an auxiliary objective, but as we show, unsupervised pre-training already learns several linguistic aspects relevant to target tasks. 3 Framework Our training procedure consists of two stages. The first stage is learning a high-capacity language model on a large corpus of text. This is followed by a fine-tuning stage, where we adapt the model to a discriminative task with labeled data. 3.1 Unsupervised pre-training Given an unsupervised corpus of tokens U = {uj,..., u,}, we use a standard language modeling objective to maximize the following likelihood: = Vlog Pluie, 01-1; 8) Oy where k is the size of the context window, and the conditional probability P is modeled using a neural network with parameters \u00a9. These parameters are trained using stochastic gradient descent [51]. In our experiments, we use a multi-layer Transformer decoder [34] for the language model, which is a variant of the transformer [62]. This model applies a multi-headed self-attention operation over the input context tokens followed by position-wise feedforward layers to produce an output distribution over target tokens: ho =UW. + Wp hy = transformer_block(hj_1)Vi \u20ac [1, n] (2) P(u) = softmax(h,W2) where U = (u_,,--.,U_1) is the context vector of tokens, n is the number of layers, W; is the token embedding matrix, and W, is the position embedding matrix. 3.2 Supervised fine-tuning After training the model with the objective in Eq. 1, we adapt the parameters to the supervised target task. We assume a labeled dataset C, where each instance consists of a sequence of input tokens, a}, \u2122, along with a label y. The inputs are passed through our pre-trained model to obtain the final transformer block\u2019s activation hj\", which is then fed into an added linear output layer with parameters W,, to predict y: P(ylc',...,2\u2122) = softmax(h]\"W,). @) This gives us the following objective to maximize: = YF log Piyle!,...,0\u201d). (4) (ey) We additionally found that including language modeling as an auxiliary objective to the fine-tuning helped learning by (a) improving generalization of the supervised model, and (b) accelerating convergence. This is in line with prior work [50, 43], who also observed improved performance with such an auxiliary objective. Specifically, we optimize the following objective (with weight .): L3(C) = Lo(C) + A* Li(C) (5) Overall, the only extra parameters we require during fine-tuning are W,,, and embeddings for delimiter tokens (described below in Section 3.3).",
+      "char_count": 3283,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 4,
+      "text": "cussteaon [Sat [Tea [na -tme [ns] Entailment [Sian [Premise | Deim | Hypothesis | Exract Stat [ Text2 | Deim | Text2 | Exact Similarity = San [ Text2 | beim | Text | earact Sant | Context | deim | Answer | Exract Multiple Choice [ swt | Context | beim | Answer 2 | Exract a Figure 1: (left) Transformer architecture and training objectives used in this work. (right) Input transformations for fine-tuning on different tasks. We convert all structured inputs into token sequences to be processed by our pre-trained model, followed by a linear+softmax layer. nu 3.3 Task-specific input transformations For some tasks, like text classification, we can directly fine-tune our model as described above. Certain other tasks, like question answering or textual entailment, have structured inputs such as ordered sentence pairs, or triplets of document, question, and answers. Since our pre-trained model was trained on contiguous sequences of text, we require some modifications to apply it to these tasks. Previous work proposed learning task specific architectures on top of transferred representations [44]. Such an approach re-introduces a significant amount of task-specific customization and does not use transfer learning for these additional architectural components. Instead, we use a traversal-style approach [52], where we convert structured inputs into an ordered sequence that our pre-trained model can process. These input transformations allow us to avoid making extensive changes to the architecture across tasks. We provide a brief description of these input transformations below and Figure | provides a visual illustration. All transformations include adding randomly initialized start and end tokens ((s), (e)). Textual entailment For entailment tasks, we concatenate the premise p and hypothesis h token sequences, with a delimiter token ($) in between. Similarity For similarity tasks, there is no inherent ordering of the two sentences being compared. To reflect this, we modify the input sequence to contain both possible sentence orderings (with a delimiter in between) and process each independently to produce two sequence representations hj\u201d which are added element-wise before being fed into the linear output layer. Question Answering and Commonsense Reasoning For these tasks, we are given a context document z, a question q, and a set of possible answers {a;.}. We concatenate the document context and question with each possible answer, adding a delimiter token in between to get [2; q;$: a,]. Each of these sequences are processed independently with our model and then normalized via a softmax layer to produce an output distribution over possible answers. 4 Experiments 4.1 Setup Unsupervised pre-training We use the BooksCorpus dataset [71] for training the language model. It contains over 7,000 unique unpublished books from a variety of genres including Adventure, Fantasy, and Romance. Crucially, it contains long stretches of contiguous text, which allows the generative model to learn to condition on long-range information. An alternative dataset, the 1B Word Benchmark, which is used by a similar approach, ELMo [44], is approximately the same size",
+      "char_count": 3185,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 5,
+      "text": "Table 1: A list of the different tasks and datasets used in our experiments. \u2018Task Datasets Natural language inference SNLI [5], MultiNLI [66]. Question NLI [64], RTE [4]. SciTail [25] Question Answering RACE [30], Story Cloze [40] Sentence similarity MSR Paraphrase Corpus [14], Quora Question Pairs [9], STS Benchmark [6] Classification Stanford Sentiment Treebank-2 [54], CoLA [65] but is shuffled at a sentence level - destroying long-range structure. Our language model achieves a very low token level perplexity of 18.4 on this corpus. Model specifications Our model largely follows the original transformer work [62]. We trained a 12-layer decoder-only transformer with masked self-attention heads (768 dimensional states and 12 attention heads). For the position-wise feed-forward networks, we used 3072 dimensional inner states. We used the Adam optimization scheme [27] with a max learning rate of 2.5e-4. The learning rate was increased linearly from zero over the first 2000 updates and annealed to 0 using a cosine schedule. We train for 100 epochs on minibatches of 64 randomly sampled, contiguous sequences of 512 tokens. Since layernorm [2] is used extensively throughout the model, a simple weight initialization of N (0, 0.02) was sufficient. We used a bytepair encoding (BPE) vocabulary with 40,000 merges [53] and residual, embedding, and attention dropouts with a rate of 0.1 for regularization. We also employed a modified version of L2 regularization proposed in [37], with w = 0.01 on all non bias or gain weights. For the activation function, we used the Gaussian Error Linear Unit (GELU) [18]. We ition embeddings instead of the sinusoidal version proposed in the original work. ibrary? to clean the raw text in BooksCorpus, standardize some punctuation and whitespace, and use the spaCy tokenizer> Fine-tuning details Unless specified, we reuse the hyperparameter settings from unsupervised pre-training. We add dropout to the classifier with a rate of 0.1. For most tasks, we use a learning rate of 6.25e-5 and a batchsize of 32. Our model finetunes quickly and 3 epochs of training was sufficient for most cases. We use a linear learning rate decay schedule with warmup over 0.2% of training. was set to 0.5. 4.2 Supervised fine-tuning We perform experiments on a variety of supervised tasks including natural language inference, question answering, semantic similarity, and text classification. Some of these tasks are available as part of the recently released GLUE multi-task benchmark [64], which we make use of. Figure 1 provides an overview of all the tasks and datasets. Natural Language Inference The task of natural language inference (NLD), also known as recog- nizing textual entailment, involves reading a pair of sentences and judging the relationship between them from one of entailment, contradiction or neutral. Although there has been a lot of recent interest [58, 35, 44], the task remains challenging due to the presence of a wide variety of phenomena like lexical entailment, coreference, and lexical and syntactic ambiguity. We evaluate on five datasets with diverse sources, including image captions (SNLI), transcribed speech, popular fiction, and government reports (MNLI), Wikipedia articles (QNLI), science exams (SciTail) or news articles (RTE). Table 2 details various results on the different NLI tasks for our model and previous state-of-the-art approaches. Our method significantly outperforms the baselines on four of the five datasets, achieving absolute improvements of upto 1.5% on MNLI, 5% on SciTail, 5.8% on QNLI and 0.6% on SNLI over the previous best results. This demonstrates our model's ability to better reason over multiple sentences, and handle aspects of linguistic ambiguity. On RTE, one of the smaller datasets we evaluate on (2490 examples), we achieve an accuracy of 56%, which is below the 61.7% reported by a multi-task biLSTM model. Given the strong performance of our approach on larger NLI datasets, it is likely our model will benefit from multi-task training as well but we have not explored this currently. \u00b0https://ftfy .readthedocs.io/en/latest/ \u2018nttps://spacy.io/",
+      "char_count": 4154,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 6,
+      "text": "Table 2: Experimental results on natural language inference tasks, comparing our model with current state-of-the-art methods. 5x indicates an ensemble of 5 models. All datasets use accuracy as the evaluation metric. Method MNLI-m MNLE-mm SNLI SciTail QNLI RTE ESIM + ELMo [44] (5x) - - 89.3 - - - CAFE [58] (5x) 80.2 79.0 - - - Stochastic Answer Network [35] (3x) 80.6 80.1 - - - - CAFE [58] 78.7 719 885 83.3 GenSen [64] 714 713 - - 82.3 59.2 Multi-task BiLSTM + Attn [64] 72.2 72.1 - - 82.1 617 Finetuned Transformer LM (ours) 82.1 81.4 89.9 883 881 56.0 Table 3: Results on question answering and commonsense reasoning, comparing our model with current state-of-the-art methods.. 9x means an ensemble of 9 models. Method Story Cloze RACE-m RACE-h RACE val-LS-skip [55] 76.5 - - - Hidden Coherence Model [7] 771.6 - - - Dynamic Fusion Net [67] (9x) - 55.6 49.4 51.2 BiAttention MRU [59] (9x) - 60.2 50.3 53.3 Finetuned Transformer LM (ours) 86.5 62.9 57.4 59.0 Question answering and commonsense reasoning Another task that requires aspects of single and multi-sentence reasoning is question answering. We use the recently released RACE dataset [30], consisting of English passages with associated questions from middle and high school exams. This corpus has been shown to contain more reasoning type questions that other datasets like CNN [19] or SQuaD [47], providing the perfect evaluation for our model which is trained to handle long-range contexts. In addition, we evaluate on the Story Cloze Test [40], which involves selecting the correct ending to multi-sentence stories from two options. On these tasks, our model again outperforms the previous best results by significant margins - up to 8.9% on Story Cloze, and 5.7% overall on RACE. This demonstrates the ability of our model to handle long-range contexts effectively. Semantic Similarity Semantic similarity (or paraphrase detection) tasks involve predicting whether two sentences are semantically equivalent or not. The challenges lie in recognizing rephrasing of concepts, understanding negation, and handling syntactic ambiguity. We use three datasets for this task \u2014 the Microsoft Paraphrase corpus (MRPC) [14] (collected from news sources), the Quora Question Pairs (QQP) dataset [9], and the Semantic Textual Similarity benchmark (STS-B) [6]. We obtain state-of-the-art results on two of the three semantic similarity tasks (Table 4) with a I point absolute gain on STS-B. The performance delta on QQP is significant, with a 4.2% absolute improvement over Single-task BILSTM + ELMo + Attn. Classification Finally, we also evaluate on two different text classification tasks. The Corpus of Linguistic Acceptability (CoLA) [65] contains expert judgements on whether a sentence is grammatical or not, and tests the innate linguistic bias of trained models. The Stanford Sentiment Treebank (SST-2) [54], on the other hand, is a standard binary classification task. Our model obtains an score of 45.4 on CoLA, which is an especially big jump over the previous best result of 35.0, showcasing the innate linguistic bias learned by our model. The model also achieves 91.3% accuracy on SST-2, which is competitive with the state-of-the-art results. We also achieve an overall score of 72.8 on the GLUE benchmark, which is significantly better than the previous best of 68.9.",
+      "char_count": 3338,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 7,
+      "text": "Table 4: Semantic similarity and classification results, comparing our model with current state-of-the- art methods. All task evaluations in this table were done using the GLUE benchmark. (mc= Mathews correlation, acc=Accuracy, pc=Pearson correlation) Method Classification Semantic Similarity GLUE CoLA SST2 MRPC STSB QQP (me) (ace) (FI) (pe) (FI) Sparse byte mLSTM [16] - 93.2 - - - - TF-KLD [23] - : 86.0 - - - ECNU (mixed ensemble) [60] - - - 810 - - Single-task BILSTM + ELMo+ Attn [64] 35.0 90.2 80.2 555 66.1 64.8 Multi-task BiLSTM +ELMo + Atin[64] 18.9 91.6 83.5728 = 63.3 68.9 Finetuned Transformer LM (ours) 45.4 91.3 82.3 82.0 70.3 728 Overall, our approach achieves new state-of-the-art results in 9 out of the 12 datasets we evaluate on, outperforming ensembles in many cases. Our results also indicate that our approach works well across datasets of different sizes, from smaller datasets such as STS-B (~5.7k training examples) \u2014 to the largest one \u2014 SNLI (550k training examples). 5 Analysis Impact of number of layers transferred \u2014 We observed the impact of transferring a variable number of layers from unsupervised pre-training to the supervised target task. Figure 2(left) illustrates the performance of our approach on MultiNLI and RACE as a function of the number of layers transferred. We observe the standard result that transferring embeddings improves performance and that each transformer layer provides further benefits up to 9% for full transfer on MultiNLI. This indicates that each layer in the pre-trained model contains useful functionality for solving target tasks. 100 100 Loy \u2014 sentiment analysis \u2014 winograd schema resolution 90 linguistic acceptability 0.8} \u2014 question answering w ze Transformer s & is\u2122 2 g \u00a2 2\u00bb < g06 5 i \u00a2 F - \u00e9 3 3S Zo s 3 8 = goa = 30 2 8 RACE Dev o2| \u00b0 RACE Train 1S \u2014 Muttint! Dev \u00bb Mult Train 00 eZ 0 2 4 6 8 10 nm\u201d 10\u00b0 10* # of ayes transferred # of pretraining updates Figure 2: (left) Effect of transferring increasing number of layers from the pre-trained language model on RACE and MultiNLI. (right) Plot showing the evolution of zero-shot performance on different tasks as a function of LM pre-training updates. Performance per task is normalized between arandom guess baseline and the current state-of-the-art with a single model. Zero-shot Behaviors We'd like to better understand why language model pre-training of transform- ers is effective. A hypothesis is that the underlying generative model learns to perform many of the tasks we evaluate on in order to improve its language modeling capability and that the more structured",
+      "char_count": 2599,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 8,
+      "text": "Table 5: Analysis of various model ablations on different tasks. Avg. score is a unweighted average of all the results. (me= Mathews correlation, acc=Accuracy, pc=Pearson correlation) Method Avg. Score CoLA SST2_ MRPC_\u2014-STSB_-- QQP-s MNLI_sQNLI_\u2014seRTE, (me) (ace) (FI) (pe), FI) ace) (ace) (ace) \u2018Transformer w/ aux LM (full) 747 454 913 823-820 70.3 BLS BBL 56.0 Transformer w/o pre-training 59.9 1839 840 79.4 30.9 65.5 75.7712 538 \u2018Transformer w/o aux LM 75.0 479 92.0 84,9 83.2698 SL. 869 SHA LSTM w/aux LM 69.1 303 90.5 83.2 718 O81 73.7 BLT 54.6 attentional memory of the transformer assists in transfer compared to LSTMs. We designed a series of heuristic solutions that use the underlying generative model to perform tasks without supervised finetuning. We visualize the effectiveness of these heuristic solutions over the course of generative pre-training in Fig 2(right). We observe the performance of these heuristics is stable and steadily increases over training suggesting that generative pretraining supports the learning of a wide variety of task relevant functionality. We also observe the LSTM exhibits higher variance in its zero-shot performance suggesting that the inductive bias of the Transformer architecture assists in transfer. For CoLA (linguistic acceptability), examples are scored as the average token log-probability the generative model assigns and predictions are made by thresholding. For SST-2 (sentiment analysis), we append the token very to each example and restrict the language model's output distribution to only the words positive and negative and guess the token it assigns higher probability to as the prediction. For RACE (question answering), we pick the answer the generative model assigns the highest average token log-probability when conditioned on the document and question. For DPRD [46] (winograd schemas), we replace the definite pronoun with the two possible referrents and predict the resolution that the generative model assigns higher average token log-probability to the rest of the sequence after the substitution. Ablation studies We perform three different ablation studies (Table 5). First, we examine the performance of our method without the auxiliary LM objective during fine-tuning. We observe that the auxiliary objective helps on the NLI tasks and QQP. Overall, the trend suggests that larger datasets benefit from the auxiliary objective but smaller datasets do not. Second, we analyze the effect of the Transformer by comparing it with a single layer 2048 unit LSTM using the same framework. We observe a 5.6 average score drop when using the LSTM instead of the Transformer. The LSTM only outperforms the Transformer on one dataset - MRPC. Finally, we also compare with our transformer architecture directly trained on supervised target tasks, without pre-training. We observe that the lack of pre-training hurts performance across all the tasks, resulting in a 14.8% decrease compared to our full model. 6 Conclusion We introduced a framework for achieving strong natural language understanding with a single task-agnostic model through generative pre-training and discriminative fine-tuning. By pre-training on a diverse corpus with long stretches of contiguous text our model acquires significant world knowledge and ability to process long-range dependencies which are then successfully transferred to solving discriminative tasks such as question answering, semantic similarity assessment, entailment determination, and text classification, improving the state of the art on 9 of the 12 datasets we study. Using unsupervised (pre-)training to boost performance on discriminative tasks has long been an important goal of Machine Learning research. Our work suggests that achieving significant performance gait to what models (Transformers) and data sets (text with long range dependencies) work best with this approach. We hope that this will help enable new research into unsupervised learning, for both natural language understanding and other domains, further improving our understanding of how and when unsupervised learning works. References [1] S. Arora, Y. Liang, and T. Ma. A simple but tough-to-beat baseline for sentence embeddings. 2016.",
+      "char_count": 4224,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 9,
+      "text": "[2] J. L. Ba, J. R. Kiros, and G. E. Hinton. Layer normalization. arXiv preprint arXiv: 1607.06450, 2016. [3] Y. Bengio, P. Lamblin, D. Popovici, and H. Larochelle. Greedy layer-wise training of deep networks. In Advances in neural information processing systems, pages 153-160, 2007. [4] L. Bentivogli, P. Clark, I. Dagan, and D. Giampiccolo. The fifth pascal recognizing textual entailment challenge. In TAC, 2009. [5] S. R. Bowman, G. Angeli, C. Potts, and C. D. Manning. A large annotated corpus for learning natural language inference. EMNLP, 2015. [6] D. Cer, M. Diab, E. Agirre, I. Lopez-Gazpio, and L. Specia. Semeval-2017 task 1: Semantic textual similarity-multilingual and cross-lingual focused evaluation. arXiv preprint arXiv:1708,00055, 2017. [7] S. Chaturvedi, H. Peng, and D. Roth. Story comprehension for predicting what happens next. In Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing, pages 1603-1614, 2017. [8] D. Chen and C. Manning. A fast and accurate dependency parser using neural networks. In Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP), pages 740-750, 2014. (9] Z. Chen, H. Zhang, X. Zhang, and L. Zhao, Quora question pairs. https://data.quora.com/First-Quora- Dataset-Release-Question-Pairs, 2018. [10] R. Collobert and J. Weston. A unified architecture for natural language processing: Deep neural networks with multitask learning. In Proceedings of the 25th international conference on Machine learning, pages 160-167. ACM, 2008. [11] R. Collobert, J. Weston, L. Bottou, M. Karlen, K. Kavukcuoglu, and P. Kuksa. Natural language processing (almost) from scratch. Journal of Machine Learning Research, 12(Aug):2493~-2537, 2011. [12] A. Conneau, D. Kiela, H. Schwenk, L. Barrault, and A. Bordes. Supervised learning of universal sentence representations from natural language inference data. EMNLP, 2017 [13] A.M. Dai and Q. V. Le. Semi-supervised sequence learning. In Advances in Neural Information Processing Systems, pages 3079-3087, 2015. [14] W.B. Dolan and C. Brockett. Automatically constructing a corpus of sentential paraphrases. In Proceedings of the Third International Workshop on Paraphrasing (IWP2005), 2005. [15] D. Erhan, Y, Bengio, A. Courville, P-A. Manzagol, P. Vincent, and S. Bengio. Why does unsupervised pre-training help deep learning? Journal of Machine Learning Research, 1(Feb):625-660, 2010. [16] S. Gray, A. Radford, and K. P, Diederik. Gpu kernels for block-sparse weights. 2017 [17] Z. He, S. Liu, M. Li, M. Zhou, L. Zhang, and H, Wang. Learning entity representation for entity disam- biguation. In Proceedings of the 51st Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers), volume 2, pages 30-34, 2013. [18] D. Hendrycks and K, Gimpel. Bridging nonlinearities and stochastic regularizers with gaussian error linear units, arXiv preprint arXiv: 1606,08415, 2016. [19] K.M. Hermann, T. Kocisky, E. Grefenstette, L. Espeholt, W. Kay, M. Suleyman, and P. Blunsom. Teaching machines to read and comprehend. In Advances in Neural Information Processing Systems, pages 1693\u2014 1701, 2015. [20] G. E. Hinton, S. Osindero, and Y.-W. Teh. A fast learning algorithm for deep belief nets. Neural computation, 18(7):1527-1554, 2006. (21 J. Howard and $. Ruder. Universal language model fine-tuning for text classification. Association for Computational Linguistics (ACL), 2018. [22] Y. Jemite, S. R. Bowman, and D. Sontag. Discourse-based objectives for fast unsupervised sentence representation learning. arXiv preprint arXiv:1705.00557, 2017. [23] Y. Jiand J. Eisenstein. Discriminative improvements to distributional sentence similarity. In Proceedings of the 2013 Conference on Empirical Methods in Natural Language Processing, pages 891-896, 2013",
+      "char_count": 3827,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 10,
+      "text": "[24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35] [36] 137] [38] [39] [40] [41] [42] [43] [44] [45] F. Jiao, S. Wang, C.-H. Lee, R. Greiner, and D. Schuurmans. Semi-supervised conditional random fields for improved sequence segmentation and labeling. In Proceedings of the 21st International Conference on Computational Linguistics and the 44th annual meeting of the Association for Computational Linguistics, pages 209-216. Association for Computational Linguistics, 2006. T. Khot, A. Sabharwal, and P. Clark. Scitail: A textual entailment dataset from science question answering. In Proceedings of AAAI, 2018. Y. Kim. Convolutional neural networks for sentence classification. EMNLP, 2014. D. P. Kingma and J. Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980, 2014. R. Kiros, Y. Zhu, R. R. Salakhutdinov, R. Zemel, R. Urtasun, A. Torralba, and S. Fidler. Skip-thought vectors. In Advances in neural information processing systems, pages 3294-3302, 2015. N. Kitaev and D. Klein, Constituency parsing with a self-attentive encoder. ACL, 2018. G. Lai, Q. Xie, H. Liu, Y. Yang, and E. Hovy. Race: Large-scale reading comprehension dataset from examinations. EMNLP, 2017. G. Lample, L. Denoyer, and M. Ranzato. Unsupervised machine translation using monolingual corpora only. ICLR, 2018. Q. Le and T. Mikolov. Distributed representations of sentences and documents. In International Conference \u2018on Machine Learning, pages 1188-1196, 2014. P. Liang. Semi-supervised learning for natural language. PhD thesis, Massachusetts Institute of Technology, 2005. P. J. Liu, M. Saleh, E. Pot, B. Goodrich, R. Sepassi, L. Kaiser, and N. Shazeer, Generating wikipedia by summarizing long sequences. ICLR, 2018. X. Liu, K. Duh, and J. Gao. Stochastic answer networks for natural language inference. arXiv preprint arXiv: 1804.07888, 2018. L. Logeswaran and H. Lee. An efficient framework for learning sentence representations. JCLR, 2018. I. Loshchilov and F. Hutter. Fixing weight decay regularization in adam. arXiv preprint arXiv:1711.05101, 2017. B. McCann, J. Bradbury, C. Xiong, and R. Socher. Learned in translation: Contextualized word vectors. In Advances in Neural Information Processing Systems, pages 6297-6308, 2017. T. Mikoloy, I. Sutskever, K. Chen, G. S. Corrado, and J. Dean. Distributed representations of words and phrases and their compositionality. In Advances in neural information processing systems, pages 3111-3119, 2013. N. Mostafazadeh, M. Roth, A. Louis, N. Chambers, and J, Allen, Lsdsem 2017 shared task: The story cloze test. In Proceedings of the 2nd Workshop on Linking Models of Lexical, Sentential and Discourse-level Semantics, pages 46-51, 2017. K. Nigam, A. McCallum, and T. Mitchell. Semi-supervised text classification using em. Semi-Supervised Learning, pages 33-56, 2006. J. Pennington, R. Socher, and C. Manning. Glove: Global vectors for word representation. In Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP), pages 1532-1543, 2014. M. E, Peters, W. Ammar, C. Bhagavatula, and R. Power. Semi-supervised sequence tagging with bidirec- tional language models. ACL, 2017. M. E. Peters, M. Neumann, M. Iyyer, M. Gardner, C. Clark, K. Lee, and L. Zettlemoyer. Deep contextual- ized word representations. NAACL, 2018. Y. Qi, D. S. Sachan, M. Felix, S. J. Padmanabhan, and G. Neubig. When and why are pre-trained word embeddings useful for neural machine translation? NAACL, 2018. 10",
+      "char_count": 3491,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 11,
+      "text": "[46] [47] [48] 149] [50] 51] [52] 153] [54] 155] [56] [57] 158] [59] [60] [61] [62] [63] [64] [65] [66] [67] \u2018A. Rahman and V. Ng. Resolving complex cases of definite pronouns: the winograd schema challenge. In Proceedings of the 2012 Joint Conference on Empirical Methods in Natural Language Processing and Computational Natural Language Learning, pages 777-789. Association for Computational Linguistics, 2012. P. Rajpurkar, J. Zhang, K. Lopyrev, and P. Liang. Squad: 100,000+ questions for machine comprehension of text. EMNLP, 2016. P, Ramachandran, P. J. Liu, and Q. V. Le. Unsupervised pretraining for sequence to sequence learning. arXiv preprint arXiv:1611.02683, 2016. M. Ranzato, C. Poultney, S. Chopra, and Y. LeCun. Efficient learning of sparse representations with an energy-based model. In Advances in neural information processing systems, pages 1137-1144, 2007. M. Rei. Semi-supervised multitask learning for sequence labeling. ACL, 2017. H. Robbins and S. Monro. A stochastic approximation method. The annals of mathematical statistics, pages 400-407, 1951. T. Rocktiischel, E. Grefenstette, K. M. Hermann, T. Kodisky, and P. Blunsom. Reasoning about entailment with neural attention. arXiv preprint arXiv: 1509.06664, 2015. R. Sennrich, B. Haddow, and A. Birch. Neural machine translation of rare words with subword units. arXiv preprint arXiv:1508.07909, 2015. R. Socher, A. Perelygin. J. Wu, J. Chuang, C. D. Manning, A. Ng, and C. Potts. Recursive deep models for semantic compositionality over a sentiment treebank. In Proceedings of the 2013 conference on empirical methods in natural language processing, pages 1631-1642, 2013. S. Srinivasan, R. Arora, and M. Riedl. A simple and effective approach to the story cloze test. arXiv preprint arXiv: 1803.05547, 2018. S. Subramanian, A. Trischler, Y. Bengio, and C. J. Pal. Learning general purpose distributed sentence representations via large scale multi-task learning. arXiv preprint arXiv:1804.00079, 2018. J. Suzuki and H. Isozaki. Semi-supervised sequential labeling and segmentation using giga-word scale unlabeled data. Proceedings of ACL-O8: HLT, pages 665-673, 2008. Y. Tay, L. A. Tuan, and S. C. Hui. A compare-propagate architecture with alignment factorization for natural language inference. arXiv preprint arXiv: 1801.00102, 2017. Y. Tay, L. A. Tuan, and S. C. Hui. Multi-range reasoning for machine comprehension. arXiv preprint arXiv: 1803.09074, 2018. J. Tian, Z. Zhou, M. Lan, and Y. Wu. Ecnu at semeval-2017 task 1: Leverage kernel-based traditional nlp features and neural networks to build a universal model for multilingual and cross-lingual semantic textual similarity. In Proceedings of the LIth International Workshop on Semantic Evaluation (SemEval-2017), pages 191-197, 2017. Y. Tsvetkov. Opportunities and challenges in working with low-resource languages. CMU, 2017. A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, \u00a3. Kaiser, and I. Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems, pages 6000-6010. 2017. P. Vincent, H. Larochelle, Y. Bengio, and P.-A. Manzagol. Extracting and composing robust features with denoising autoencoders. In Proceedings of the 25th international conference on Machine learning, pages 1096-1103. ACM, 2008. \u2018A. Wang, A. Singh, J. Michael, F. Hill, O. Levy, and S. R. Bowman, Glue: A multi-task benchmark and analysis platform for natural language understanding. arXiv preprint arXiv:1804.07461, 2018. \u2018A. Warstadt, A. Singh, and S, R. Bowman. Corpus of linguistic acceptability. http://nyu-mll.github.io/cola, 2018. A. Williams, N. Nangia, and S. R. Bowman. A broad-coverage challenge corpus for sentence understanding through inference. NAACL, 2018. Y. Xu, J. Liu, J. Gao, Y. Shen, and X. Liu. Towards human-level machine reading comprehension: Reasoning and inference with multiple strategies. arXiv preprint arXiv:1711.04964, 2017 ll",
+      "char_count": 3932,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    },
+    {
+      "page_number": 12,
+      "text": "[68] [69] [70] (71) D. Yu, L. Deng, and G. Dahl. Roles of pre-training and fine-tuning in context-dependent dbn-hmms for real-world speech recognition. In Proc. NIPS Workshop on Deep Learning and Unsupervised Feature Learning, 2010. R. Zhang, P. Isola, and A. A. Efros. Split-brain autoencoders: Unsupervised learning by cross-channel prediction. In CVPR, volume 1, page 6, 2017. X. Zhu, Semi-supervised learning literature survey. 2005 Y. Zhu, R. Kiros, R. Zemel Jakhutdinov, R. Urtasun, A. Torralba, and S. Fidler, Aligning books and movies: Towards story-like visual explanations by watching movies and reading books. In Proceedings of the IEEE international conference on computer vision, pages 19-27, 2015. 12",
+      "char_count": 714,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "used_ocr": true
+    }
+  ],
+  "chunks": [
+    {
+      "chunk_id": 0,
+      "text": "Improving Language Understanding by Generative Pre-Training Alec Radford Karthik Narasimhan Tim Salimans Ilya Sutskever OpenAl OpenAl OpenAI OpenAl alec@openai.con karthikn@openai.com tim@openai.com ilyasu@openai.com Abstract Natural language understanding comprises a wide range of diverse tasks such as textual entailment, question answering, semantic similarity assessment, and document classification.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 405
+    },
+    {
+      "chunk_id": 1,
+      "text": "Although large unlabeled text corpora are abundant, labeled data for learning these specific tasks is scarce, making it challenging for discriminatively trained models to perform adequately. We demonstrate that large gains on these tasks can be realized by generative pre-training of a language model ona diverse corpus of unlabeled text, followed by discriminative fine-tuning on each specific task.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 400
+    },
+    {
+      "chunk_id": 2,
+      "text": "In contrast to previous approaches, we make use of task-aware input transformations during fine-tuning to achieve effective transfer while requiring minimal changes to the model architecture. We demonstrate the effectiveness of our approach on a wide range of benchmarks for natural language understanding.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 306
+    },
+    {
+      "chunk_id": 3,
+      "text": "Our general task-agnostic model outperforms discriminatively trained models that use architectures specifically crafted for each task, significantly improving upon the state of the art in 9 out of the 12 tasks studied.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 218
+    },
+    {
+      "chunk_id": 4,
+      "text": "For instance, we achieve absolute improvements of 8.9% on commonsense reasoning (Stories Cloze Test), 5.7% on question answering (RACE), and 1.5% on textual entailment (MultiNLI). 1 Introduction The ability to learn effectively from raw text is crucial to alleviating the dependence on supervised learning in natural language processing (NLP).",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 343
+    },
+    {
+      "chunk_id": 5,
+      "text": "Most deep learning methods require substantial amounts of manually labeled data, which restricts their applicability in many domains that suffer from a dearth of annotated resources [61]. In these situations, models that can leverage linguistic information from unlabeled data provide a valuable alternative to gathering more annotation, which can be time-consuming and expensive.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 380
+    },
+    {
+      "chunk_id": 6,
+      "text": "Further, even in cases where considerable supervision is available, learning good representations in an unsupervised fashion can provide a significant performance boost. The most compelling evidence for this so far has been the extensive use of pre- trained word embeddings [10, 39, 42] to improve performance on a range of NLP tasks [8, 11, 26, 45]. Leveraging more than word-level information from unlabeled text, however, is challenging for two main reasons.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 461
+    },
+    {
+      "chunk_id": 7,
+      "text": "First, it is unclear what type of optimization objectives are most effective at learning text representations that are useful for transfer. Recent research has looked at various objectives such as language modeling [44], machine translation [38], and discourse coherence [22], with each method outperforming the others on different tasks.' Second, there is no consensus on the most effective way to transfer these learned representations to the target task.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 457
+    },
+    {
+      "chunk_id": 8,
+      "text": "Existing techniques involve a combination of making task-specific changes to the model architecture [43, 44], using intricate learning schemes [21] and adding auxiliary learning objectives [50]. These uncertainties have made it difficult to develop effective semi-supervised learning approaches for language processing. \"htps://gluebenchmark.com/leaderboard Preprint. Work in progress.",
+      "page_number": 1,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 385
+    },
+    {
+      "chunk_id": 9,
+      "text": "In this paper, we explore a semi-supervised approach for language understanding tasks using a combination of unsupervised pre-training and supervised fine-tuning. Our goal is to learn a universal representation that transfers with little adaptation to a wide range of tasks. We assume access to a large corpus of unlabeled text and several datasets with manually annotated training examples (target tasks). Our setup does not require these target tasks to be in the same domain as the unlabeled corpus.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 502
+    },
+    {
+      "chunk_id": 10,
+      "text": "We employ a two-stage training procedure. First, we use a language modeling objective on the unlabeled data to learn the initial parameters of a neural network model. Subsequently, we adapt these parameters to a target task using the corresponding supervised objective. For our model architecture, we use the Transformer [62], which has been shown to perform strongly on various tasks such as machine translation [62], document generation [34], and syntactic parsing [29].",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 472
+    },
+    {
+      "chunk_id": 11,
+      "text": "This model choice provides us with a more structured memory for handling long-term dependencies in text, compared to alternatives like recurrent networks, resulting in robust transfer performance across diverse tasks. During transfer, we utilize task-specific input adaptations derived from traversal-style approaches [52], which process structured text input as a single contiguous sequence of tokens.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 402
+    },
+    {
+      "chunk_id": 12,
+      "text": "As we demonstrate in our experiments, these adaptations enable us to fine-tune effectively with minimal changes to the architecture of the pre-trained model. We evaluate our approach on four types of language understanding tasks \u2014 natural language inference, question answering, semantic similarity, and text classification.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 324
+    },
+    {
+      "chunk_id": 13,
+      "text": "Our general task-agnostic model outperforms discriminatively trained models that employ architectures specifically crafted for each task, significantly improving upon the state of the art in 9 out of the 12 tasks studied. For instance, we achieve absolute improvements of 8.9% on commonsense reasoning (Stories Cloze Test) [40], 5.7% on question answering (RACE) [30], 1.5% on textual entailment (MultiNLI) [66] and 5.5% on the recently introduced GLUE multi-task benchmark [64].",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 479
+    },
+    {
+      "chunk_id": 14,
+      "text": "We also analyzed zero-shot behaviors of the pre-trained model on four different settings and demonstrate that it acquires useful linguistic knowledge for downstream tasks. 2 Related Work Semi-supervised learning for NLP Our work broadly falls under the category of semi-supervised learning for natural language. This paradigm has attracted significant interest, with applications to tasks like sequence labeling [24, 33, 57] or text classification [41, 70].",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 457
+    },
+    {
+      "chunk_id": 15,
+      "text": "The earliest approaches used unlabeled data to compute word-level or phrase-level statistics, which were then used as features in a supervised model [33]. Over the last few years, researchers have demonstrated the benefits of using word embeddings [11, 39, 42], which are trained on unlabeled corpora, to improve performance on a variety of tasks [8, 11, 26, 45]. These approaches, however, mainly transfer word-level information, whereas we aim to capture higher-level semantics.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 480
+    },
+    {
+      "chunk_id": 16,
+      "text": "Recent approaches have investigated learning and utilizing more than word-level semantics from unlabeled data. Phrase-level or sentence-level embeddings, which can be trained using an unlabeled corpus, have been used to encode text into suitable vector representations for various target tasks [28, 32, 1, 36, 22, 12, 56, 31].",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 326
+    },
+    {
+      "chunk_id": 17,
+      "text": "Unsupervised pre-training Unsupervised pre-training is a special case of semi-supervised learning where the goal is to find a good initialization point instead of modifying the supervised learning objective. Early works explored the use of the technique in image classification (20, 49, 63] and regression tasks [3]. Subsequent research [15] demonstrated that pre-training acts as a regularization scheme, enabling better generalization in deep neural networks.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 461
+    },
+    {
+      "chunk_id": 18,
+      "text": "In recent work, the method has been used to help train deep neural networks on various tasks like image classification [69], speech recognition [68], entity disambiguation [17] and machine translation [48]. The closest line of work to ours involves pre-training a neural network using a language modeling objective and then fine-tuning it on a target task with supervision. Dai et al. [13] and Howard and Ruder [21] follow this method to improve text classification.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 466
+    },
+    {
+      "chunk_id": 19,
+      "text": "However, although the pre-training phase helps capture some linguistic information, their usage of LSTM models restricts their prediction ability to a short range. In contrast, our choice of transformer networks allows us to capture longer- range linguistic structure, as demonstrated in our experiments. Further, we also demonstrate the effectiveness of our model on a wider range of tasks including natural language inference, paraphrase detection and story completion.",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 471
+    },
+    {
+      "chunk_id": 20,
+      "text": "Other approaches [43, 44, 38] use hidden representations from a",
+      "page_number": 2,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 63
+    },
+    {
+      "chunk_id": 21,
+      "text": "pre-trained language or machine translation model as auxiliary features while training a supervised model on the target task. This involves a substantial amount of new parameters for each separate target task, whereas we require minimal changes to our model architecture during transfer. Auxiliary training objectives Adding auxiliary unsupervised training objectives is an alternative form of semi-supervised learning.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 419
+    },
+    {
+      "chunk_id": 22,
+      "text": "Early work by Collobert and Weston [10] used a wide variety of auxiliary NLP tasks such as POS tagging, chunking, named entity recognition, and language modeling to improve semantic role labeling. More recently, Rei [50] added an auxiliary language modeling objective to their target task objective and demonstrated performance gains on sequence labeling tasks.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 361
+    },
+    {
+      "chunk_id": 23,
+      "text": "Our experiments also use an auxiliary objective, but as we show, unsupervised pre-training already learns several linguistic aspects relevant to target tasks. 3 Framework Our training procedure consists of two stages. The first stage is learning a high-capacity language model on a large corpus of text.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 303
+    },
+    {
+      "chunk_id": 24,
+      "text": "This is followed by a fine-tuning stage, where we adapt the model to a discriminative task with labeled data. 3.1 Unsupervised pre-training Given an unsupervised corpus of tokens U = {uj,..., u,}, we use a standard language modeling objective to maximize the following likelihood: = Vlog Pluie, 01-1; 8) Oy where k is the size of the context window, and the conditional probability P is modeled using a neural network with parameters \u00a9.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 436
+    },
+    {
+      "chunk_id": 25,
+      "text": "These parameters are trained using stochastic gradient descent [51]. In our experiments, we use a multi-layer Transformer decoder [34] for the language model, which is a variant of the transformer [62].",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 202
+    },
+    {
+      "chunk_id": 26,
+      "text": "This model applies a multi-headed self-attention operation over the input context tokens followed by position-wise feedforward layers to produce an output distribution over target tokens: ho =UW. + Wp hy = transformer_block(hj_1)Vi \u20ac [1, n] (2) P(u) = softmax(h,W2) where U = (u_,,--.,U_1) is the context vector of tokens, n is the number of layers, W; is the token embedding matrix, and W, is the position embedding matrix. 3.2 Supervised fine-tuning After training the model with the objective in Eq. 1, we adapt the parameters to the supervised target task.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 560
+    },
+    {
+      "chunk_id": 27,
+      "text": "We assume a labeled dataset C, where each instance consists of a sequence of input tokens, a}, \u2122, along with a label y.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 119
+    },
+    {
+      "chunk_id": 28,
+      "text": "The inputs are passed through our pre-trained model to obtain the final transformer block\u2019s activation hj\", which is then fed into an added linear output layer with parameters W,, to predict y: P(ylc',...,2\u2122) = softmax(h]\"W,). @) This gives us the following objective to maximize: = YF log Piyle!,...,0\u201d). (4) (ey) We additionally found that including language modeling as an auxiliary objective to the fine-tuning helped learning by (a) improving generalization of the supervised model, and (b) accelerating convergence.",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 521
+    },
+    {
+      "chunk_id": 29,
+      "text": "This is in line with prior work [50, 43], who also observed improved performance with such an auxiliary objective. Specifically, we optimize the following objective (with weight .): L3(C) = Lo(C) + A* Li(C) (5) Overall, the only extra parameters we require during fine-tuning are W,,, and embeddings for delimiter tokens (described below in Section 3.3).",
+      "page_number": 3,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 354
+    },
+    {
+      "chunk_id": 30,
+      "text": "cussteaon [Sat [Tea [na -tme [ns] Entailment [Sian [Premise | Deim | Hypothesis | Exract Stat [ Text2 | Deim | Text2 | Exact Similarity = San [ Text2 | beim | Text | earact Sant | Context | deim | Answer | Exract Multiple Choice [ swt | Context | beim | Answer 2 | Exract a Figure 1: (left) Transformer architecture and training objectives used in this work. (right) Input transformations for fine-tuning on different tasks.",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 424
+    },
+    {
+      "chunk_id": 31,
+      "text": "We convert all structured inputs into token sequences to be processed by our pre-trained model, followed by a linear+softmax layer. nu 3.3 Task-specific input transformations For some tasks, like text classification, we can directly fine-tune our model as described above. Certain other tasks, like question answering or textual entailment, have structured inputs such as ordered sentence pairs, or triplets of document, question, and answers.",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 443
+    },
+    {
+      "chunk_id": 32,
+      "text": "Since our pre-trained model was trained on contiguous sequences of text, we require some modifications to apply it to these tasks. Previous work proposed learning task specific architectures on top of transferred representations [44]. Such an approach re-introduces a significant amount of task-specific customization and does not use transfer learning for these additional architectural components.",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 399
+    },
+    {
+      "chunk_id": 33,
+      "text": "Instead, we use a traversal-style approach [52], where we convert structured inputs into an ordered sequence that our pre-trained model can process. These input transformations allow us to avoid making extensive changes to the architecture across tasks. We provide a brief description of these input transformations below and Figure | provides a visual illustration. All transformations include adding randomly initialized start and end tokens ((s), (e)).",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 455
+    },
+    {
+      "chunk_id": 34,
+      "text": "Textual entailment For entailment tasks, we concatenate the premise p and hypothesis h token sequences, with a delimiter token ($) in between. Similarity For similarity tasks, there is no inherent ordering of the two sentences being compared.",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 242
+    },
+    {
+      "chunk_id": 35,
+      "text": "To reflect this, we modify the input sequence to contain both possible sentence orderings (with a delimiter in between) and process each independently to produce two sequence representations hj\u201d which are added element-wise before being fed into the linear output layer. Question Answering and Commonsense Reasoning For these tasks, we are given a context document z, a question q, and a set of possible answers {a;.}.",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 418
+    },
+    {
+      "chunk_id": 36,
+      "text": "We concatenate the document context and question with each possible answer, adding a delimiter token in between to get [2; q;$: a,]. Each of these sequences are processed independently with our model and then normalized via a softmax layer to produce an output distribution over possible answers. 4 Experiments 4.1 Setup Unsupervised pre-training We use the BooksCorpus dataset [71] for training the language model.",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 415
+    },
+    {
+      "chunk_id": 37,
+      "text": "It contains over 7,000 unique unpublished books from a variety of genres including Adventure, Fantasy, and Romance. Crucially, it contains long stretches of contiguous text, which allows the generative model to learn to condition on long-range information. An alternative dataset, the 1B Word Benchmark, which is used by a similar approach, ELMo [44], is approximately the same size",
+      "page_number": 4,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 382
+    },
+    {
+      "chunk_id": 38,
+      "text": "Table 1: A list of the different tasks and datasets used in our experiments. \u2018Task Datasets Natural language inference SNLI [5], MultiNLI [66]. Question NLI [64], RTE [4]. SciTail [25] Question Answering RACE [30], Story Cloze [40] Sentence similarity MSR Paraphrase Corpus [14], Quora Question Pairs [9], STS Benchmark [6] Classification Stanford Sentiment Treebank-2 [54], CoLA [65] but is shuffled at a sentence level - destroying long-range structure.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 455
+    },
+    {
+      "chunk_id": 39,
+      "text": "Our language model achieves a very low token level perplexity of 18.4 on this corpus. Model specifications Our model largely follows the original transformer work [62]. We trained a 12-layer decoder-only transformer with masked self-attention heads (768 dimensional states and 12 attention heads). For the position-wise feed-forward networks, we used 3072 dimensional inner states. We used the Adam optimization scheme [27] with a max learning rate of 2.5e-4.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 459
+    },
+    {
+      "chunk_id": 40,
+      "text": "The learning rate was increased linearly from zero over the first 2000 updates and annealed to 0 using a cosine schedule. We train for 100 epochs on minibatches of 64 randomly sampled, contiguous sequences of 512 tokens. Since layernorm [2] is used extensively throughout the model, a simple weight initialization of N (0, 0.02) was sufficient. We used a bytepair encoding (BPE) vocabulary with 40,000 merges [53] and residual, embedding, and attention dropouts with a rate of 0.1 for regularization.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 500
+    },
+    {
+      "chunk_id": 41,
+      "text": "We also employed a modified version of L2 regularization proposed in [37], with w = 0.01 on all non bias or gain weights. For the activation function, we used the Gaussian Error Linear Unit (GELU) [18].",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 202
+    },
+    {
+      "chunk_id": 42,
+      "text": "We ition embeddings instead of the sinusoidal version proposed in the original work. ibrary? to clean the raw text in BooksCorpus, standardize some punctuation and whitespace, and use the spaCy tokenizer> Fine-tuning details Unless specified, we reuse the hyperparameter settings from unsupervised pre-training. We add dropout to the classifier with a rate of 0.1. For most tasks, we use a learning rate of 6.25e-5 and a batchsize of 32.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 437
+    },
+    {
+      "chunk_id": 43,
+      "text": "Our model finetunes quickly and 3 epochs of training was sufficient for most cases. We use a linear learning rate decay schedule with warmup over 0.2% of training. was set to 0.5. 4.2 Supervised fine-tuning We perform experiments on a variety of supervised tasks including natural language inference, question answering, semantic similarity, and text classification. Some of these tasks are available as part of the recently released GLUE multi-task benchmark [64], which we make use of.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 487
+    },
+    {
+      "chunk_id": 44,
+      "text": "Figure 1 provides an overview of all the tasks and datasets. Natural Language Inference The task of natural language inference (NLD), also known as recog- nizing textual entailment, involves reading a pair of sentences and judging the relationship between them from one of entailment, contradiction or neutral.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 310
+    },
+    {
+      "chunk_id": 45,
+      "text": "Although there has been a lot of recent interest [58, 35, 44], the task remains challenging due to the presence of a wide variety of phenomena like lexical entailment, coreference, and lexical and syntactic ambiguity. We evaluate on five datasets with diverse sources, including image captions (SNLI), transcribed speech, popular fiction, and government reports (MNLI), Wikipedia articles (QNLI), science exams (SciTail) or news articles (RTE).",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 444
+    },
+    {
+      "chunk_id": 46,
+      "text": "Table 2 details various results on the different NLI tasks for our model and previous state-of-the-art approaches. Our method significantly outperforms the baselines on four of the five datasets, achieving absolute improvements of upto 1.5% on MNLI, 5% on SciTail, 5.8% on QNLI and 0.6% on SNLI over the previous best results. This demonstrates our model's ability to better reason over multiple sentences, and handle aspects of linguistic ambiguity.",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 450
+    },
+    {
+      "chunk_id": 47,
+      "text": "On RTE, one of the smaller datasets we evaluate on (2490 examples), we achieve an accuracy of 56%, which is below the 61.7% reported by a multi-task biLSTM model. Given the strong performance of our approach on larger NLI datasets, it is likely our model will benefit from multi-task training as well but we have not explored this currently. \u00b0https://ftfy .readthedocs.io/en/latest/ \u2018nttps://spacy.io/",
+      "page_number": 5,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 401
+    },
+    {
+      "chunk_id": 48,
+      "text": "Table 2: Experimental results on natural language inference tasks, comparing our model with current state-of-the-art methods. 5x indicates an ensemble of 5 models. All datasets use accuracy as the evaluation metric.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 215
+    },
+    {
+      "chunk_id": 49,
+      "text": "Method MNLI-m MNLE-mm SNLI SciTail QNLI RTE ESIM + ELMo [44] (5x) - - 89.3 - - - CAFE [58] (5x) 80.2 79.0 - - - Stochastic Answer Network [35] (3x) 80.6 80.1 - - - - CAFE [58] 78.7 719 885 83.3 GenSen [64] 714 713 - - 82.3 59.2 Multi-task BiLSTM + Attn [64] 72.2 72.1 - - 82.1 617 Finetuned Transformer LM (ours) 82.1 81.4 89.9 883 881 56.0 Table 3: Results on question answering and commonsense reasoning, comparing our model with current state-of-the-art methods.. 9x means an ensemble of 9 models.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 500
+    },
+    {
+      "chunk_id": 50,
+      "text": "Method Story Cloze RACE-m RACE-h RACE val-LS-skip [55] 76.5 - - - Hidden Coherence Model [7] 771.6 - - - Dynamic Fusion Net [67] (9x) - 55.6 49.4 51.2 BiAttention MRU [59] (9x) - 60.2 50.3 53.3 Finetuned Transformer LM (ours) 86.5 62.9 57.4 59.0 Question answering and commonsense reasoning Another task that requires aspects of single and multi-sentence reasoning is question answering.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 387
+    },
+    {
+      "chunk_id": 51,
+      "text": "We use the recently released RACE dataset [30], consisting of English passages with associated questions from middle and high school exams. This corpus has been shown to contain more reasoning type questions that other datasets like CNN [19] or SQuaD [47], providing the perfect evaluation for our model which is trained to handle long-range contexts. In addition, we evaluate on the Story Cloze Test [40], which involves selecting the correct ending to multi-sentence stories from two options.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 494
+    },
+    {
+      "chunk_id": 52,
+      "text": "On these tasks, our model again outperforms the previous best results by significant margins - up to 8.9% on Story Cloze, and 5.7% overall on RACE. This demonstrates the ability of our model to handle long-range contexts effectively. Semantic Similarity Semantic similarity (or paraphrase detection) tasks involve predicting whether two sentences are semantically equivalent or not. The challenges lie in recognizing rephrasing of concepts, understanding negation, and handling syntactic ambiguity.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 498
+    },
+    {
+      "chunk_id": 53,
+      "text": "We use three datasets for this task \u2014 the Microsoft Paraphrase corpus (MRPC) [14] (collected from news sources), the Quora Question Pairs (QQP) dataset [9], and the Semantic Textual Similarity benchmark (STS-B) [6]. We obtain state-of-the-art results on two of the three semantic similarity tasks (Table 4) with a I point absolute gain on STS-B. The performance delta on QQP is significant, with a 4.2% absolute improvement over Single-task BILSTM + ELMo + Attn.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 462
+    },
+    {
+      "chunk_id": 54,
+      "text": "Classification Finally, we also evaluate on two different text classification tasks. The Corpus of Linguistic Acceptability (CoLA) [65] contains expert judgements on whether a sentence is grammatical or not, and tests the innate linguistic bias of trained models. The Stanford Sentiment Treebank (SST-2) [54], on the other hand, is a standard binary classification task.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 370
+    },
+    {
+      "chunk_id": 55,
+      "text": "Our model obtains an score of 45.4 on CoLA, which is an especially big jump over the previous best result of 35.0, showcasing the innate linguistic bias learned by our model. The model also achieves 91.3% accuracy on SST-2, which is competitive with the state-of-the-art results. We also achieve an overall score of 72.8 on the GLUE benchmark, which is significantly better than the previous best of 68.9.",
+      "page_number": 6,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 405
+    },
+    {
+      "chunk_id": 56,
+      "text": "Table 4: Semantic similarity and classification results, comparing our model with current state-of-the- art methods.",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 116
+    },
+    {
+      "chunk_id": 57,
+      "text": "All task evaluations in this table were done using the GLUE benchmark. (mc= Mathews correlation, acc=Accuracy, pc=Pearson correlation) Method Classification Semantic Similarity GLUE CoLA SST2 MRPC STSB QQP (me) (ace) (FI) (pe) (FI) Sparse byte mLSTM [16] - 93.2 - - - - TF-KLD [23] - : 86.0 - - - ECNU (mixed ensemble) [60] - - - 810 - - Single-task BILSTM + ELMo+ Attn [64] 35.0 90.2 80.2 555 66.1 64.8 Multi-task BiLSTM +ELMo + Atin[64] 18.9 91.6 83.5728 = 63.3 68.9 Finetuned Transformer LM (ours) 45.4 91.3 82.3 82.0 70.3 728 Overall, our approach achieves new state-of-the-art results in 9 out of the 12 datasets we evaluate on, outperforming ensembles in many cases.",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 672
+    },
+    {
+      "chunk_id": 58,
+      "text": "Our results also indicate that our approach works well across datasets of different sizes, from smaller datasets such as STS-B (~5.7k training examples) \u2014 to the largest one \u2014 SNLI (550k training examples). 5 Analysis Impact of number of layers transferred \u2014 We observed the impact of transferring a variable number of layers from unsupervised pre-training to the supervised target task.",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 387
+    },
+    {
+      "chunk_id": 59,
+      "text": "Figure 2(left) illustrates the performance of our approach on MultiNLI and RACE as a function of the number of layers transferred. We observe the standard result that transferring embeddings improves performance and that each transformer layer provides further benefits up to 9% for full transfer on MultiNLI.",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 309
+    },
+    {
+      "chunk_id": 60,
+      "text": "This indicates that each layer in the pre-trained model contains useful functionality for solving target tasks. 100 100 Loy \u2014 sentiment analysis \u2014 winograd schema resolution 90 linguistic acceptability 0.8} \u2014 question answering w ze Transformer s & is\u2122 2 g \u00a2 2\u00bb < g06 5 i \u00a2 F - \u00e9 3 3S Zo s 3 8 = goa = 30 2 8 RACE Dev o2| \u00b0 RACE Train 1S \u2014 Muttint!",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 348
+    },
+    {
+      "chunk_id": 61,
+      "text": "Dev \u00bb Mult Train 00 eZ 0 2 4 6 8 10 nm\u201d 10\u00b0 10* # of ayes transferred # of pretraining updates Figure 2: (left) Effect of transferring increasing number of layers from the pre-trained language model on RACE and MultiNLI. (right) Plot showing the evolution of zero-shot performance on different tasks as a function of LM pre-training updates. Performance per task is normalized between arandom guess baseline and the current state-of-the-art with a single model.",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 461
+    },
+    {
+      "chunk_id": 62,
+      "text": "Zero-shot Behaviors We'd like to better understand why language model pre-training of transform- ers is effective. A hypothesis is that the underlying generative model learns to perform many of the tasks we evaluate on in order to improve its language modeling capability and that the more structured",
+      "page_number": 7,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 300
+    },
+    {
+      "chunk_id": 63,
+      "text": "Table 5: Analysis of various model ablations on different tasks. Avg. score is a unweighted average of all the results. (me= Mathews correlation, acc=Accuracy, pc=Pearson correlation) Method Avg.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 195
+    },
+    {
+      "chunk_id": 64,
+      "text": "Score CoLA SST2_ MRPC_\u2014-STSB_-- QQP-s MNLI_sQNLI_\u2014seRTE, (me) (ace) (FI) (pe), FI) ace) (ace) (ace) \u2018Transformer w/ aux LM (full) 747 454 913 823-820 70.3 BLS BBL 56.0 Transformer w/o pre-training 59.9 1839 840 79.4 30.9 65.5 75.7712 538 \u2018Transformer w/o aux LM 75.0 479 92.0 84,9 83.2698 SL. 869 SHA LSTM w/aux LM 69.1 303 90.5 83.2 718 O81 73.7 BLT 54.6 attentional memory of the transformer assists in transfer compared to LSTMs.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 432
+    },
+    {
+      "chunk_id": 65,
+      "text": "We designed a series of heuristic solutions that use the underlying generative model to perform tasks without supervised finetuning. We visualize the effectiveness of these heuristic solutions over the course of generative pre-training in Fig 2(right). We observe the performance of these heuristics is stable and steadily increases over training suggesting that generative pretraining supports the learning of a wide variety of task relevant functionality.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 457
+    },
+    {
+      "chunk_id": 66,
+      "text": "We also observe the LSTM exhibits higher variance in its zero-shot performance suggesting that the inductive bias of the Transformer architecture assists in transfer. For CoLA (linguistic acceptability), examples are scored as the average token log-probability the generative model assigns and predictions are made by thresholding.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 331
+    },
+    {
+      "chunk_id": 67,
+      "text": "For SST-2 (sentiment analysis), we append the token very to each example and restrict the language model's output distribution to only the words positive and negative and guess the token it assigns higher probability to as the prediction. For RACE (question answering), we pick the answer the generative model assigns the highest average token log-probability when conditioned on the document and question.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 406
+    },
+    {
+      "chunk_id": 68,
+      "text": "For DPRD [46] (winograd schemas), we replace the definite pronoun with the two possible referrents and predict the resolution that the generative model assigns higher average token log-probability to the rest of the sequence after the substitution. Ablation studies We perform three different ablation studies (Table 5). First, we examine the performance of our method without the auxiliary LM objective during fine-tuning. We observe that the auxiliary objective helps on the NLI tasks and QQP.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 495
+    },
+    {
+      "chunk_id": 69,
+      "text": "Overall, the trend suggests that larger datasets benefit from the auxiliary objective but smaller datasets do not. Second, we analyze the effect of the Transformer by comparing it with a single layer 2048 unit LSTM using the same framework. We observe a 5.6 average score drop when using the LSTM instead of the Transformer. The LSTM only outperforms the Transformer on one dataset - MRPC.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 389
+    },
+    {
+      "chunk_id": 70,
+      "text": "Finally, we also compare with our transformer architecture directly trained on supervised target tasks, without pre-training. We observe that the lack of pre-training hurts performance across all the tasks, resulting in a 14.8% decrease compared to our full model. 6 Conclusion We introduced a framework for achieving strong natural language understanding with a single task-agnostic model through generative pre-training and discriminative fine-tuning.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 453
+    },
+    {
+      "chunk_id": 71,
+      "text": "By pre-training on a diverse corpus with long stretches of contiguous text our model acquires significant world knowledge and ability to process long-range dependencies which are then successfully transferred to solving discriminative tasks such as question answering, semantic similarity assessment, entailment determination, and text classification, improving the state of the art on 9 of the 12 datasets we study.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 416
+    },
+    {
+      "chunk_id": 72,
+      "text": "Using unsupervised (pre-)training to boost performance on discriminative tasks has long been an important goal of Machine Learning research. Our work suggests that achieving significant performance gait to what models (Transformers) and data sets (text with long range dependencies) work best with this approach.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 312
+    },
+    {
+      "chunk_id": 73,
+      "text": "We hope that this will help enable new research into unsupervised learning, for both natural language understanding and other domains, further improving our understanding of how and when unsupervised learning works. References [1] S. Arora, Y. Liang, and T. Ma. A simple but tough-to-beat baseline for sentence embeddings. 2016.",
+      "page_number": 8,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 328
+    },
+    {
+      "chunk_id": 74,
+      "text": "[2] J. L. Ba, J. R. Kiros, and G. E. Hinton. Layer normalization. arXiv preprint arXiv: 1607.06450, 2016. [3] Y. Bengio, P. Lamblin, D. Popovici, and H. Larochelle. Greedy layer-wise training of deep networks. In Advances in neural information processing systems, pages 153-160, 2007. [4] L. Bentivogli, P. Clark, I. Dagan, and D. Giampiccolo. The fifth pascal recognizing textual entailment challenge. In TAC, 2009. [5] S. R. Bowman, G. Angeli, C. Potts, and C. D. Manning.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 474
+    },
+    {
+      "chunk_id": 75,
+      "text": "R. Bowman, G. Angeli, C. Potts, and C. D. Manning. A large annotated corpus for learning natural language inference. EMNLP, 2015. [6] D. Cer, M. Diab, E. Agirre, I. Lopez-Gazpio, and L. Specia. Semeval-2017 task 1: Semantic textual similarity-multilingual and cross-lingual focused evaluation. arXiv preprint arXiv:1708,00055, 2017. [7] S. Chaturvedi, H. Peng, and D. Roth. Story comprehension for predicting what happens next.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 427
+    },
+    {
+      "chunk_id": 76,
+      "text": "In Proceedings of the 2017 Conference on Empirical Methods in Natural Language Processing, pages 1603-1614, 2017. [8] D. Chen and C. Manning. A fast and accurate dependency parser using neural networks. In Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP), pages 740-750, 2014. (9] Z. Chen, H. Zhang, X. Zhang, and L. Zhao, Quora question pairs. https://data.quora.com/First-Quora- Dataset-Release-Question-Pairs, 2018. [10] R. Collobert and J. Weston.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 497
+    },
+    {
+      "chunk_id": 77,
+      "text": "Collobert and J. Weston. A unified architecture for natural language processing: Deep neural networks with multitask learning. In Proceedings of the 25th international conference on Machine learning, pages 160-167. ACM, 2008. [11] R. Collobert, J. Weston, L. Bottou, M. Karlen, K. Kavukcuoglu, and P. Kuksa. Natural language processing (almost) from scratch. Journal of Machine Learning Research, 12(Aug):2493~-2537, 2011. [12] A. Conneau, D. Kiela, H. Schwenk, L. Barrault, and A. Bordes.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 489
+    },
+    {
+      "chunk_id": 78,
+      "text": "Kiela, H. Schwenk, L. Barrault, and A. Bordes. Supervised learning of universal sentence representations from natural language inference data. EMNLP, 2017 [13] A.M. Dai and Q. V. Le. Semi-supervised sequence learning. In Advances in Neural Information Processing Systems, pages 3079-3087, 2015. [14] W.B. Dolan and C. Brockett. Automatically constructing a corpus of sentential paraphrases. In Proceedings of the Third International Workshop on Paraphrasing (IWP2005), 2005. [15] D. Erhan, Y, Bengio, A.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 503
+    },
+    {
+      "chunk_id": 79,
+      "text": "Erhan, Y, Bengio, A. Courville, P-A. Manzagol, P. Vincent, and S. Bengio. Why does unsupervised pre-training help deep learning? Journal of Machine Learning Research, 1(Feb):625-660, 2010. [16] S. Gray, A. Radford, and K. P, Diederik. Gpu kernels for block-sparse weights. 2017 [17] Z. He, S. Liu, M. Li, M. Zhou, L. Zhang, and H, Wang. Learning entity representation for entity disam- biguation.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 396
+    },
+    {
+      "chunk_id": 80,
+      "text": "In Proceedings of the 51st Annual Meeting of the Association for Computational Linguistics (Volume 2: Short Papers), volume 2, pages 30-34, 2013. [18] D. Hendrycks and K, Gimpel. Bridging nonlinearities and stochastic regularizers with gaussian error linear units, arXiv preprint arXiv: 1606,08415, 2016. [19] K.M. Hermann, T. Kocisky, E. Grefenstette, L. Espeholt, W. Kay, M. Suleyman, and P. Blunsom. Teaching machines to read and comprehend.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 444
+    },
+    {
+      "chunk_id": 81,
+      "text": "Blunsom. Teaching machines to read and comprehend. In Advances in Neural Information Processing Systems, pages 1693\u2014 1701, 2015. [20] G. E. Hinton, S. Osindero, and Y.-W. Teh. A fast learning algorithm for deep belief nets. Neural computation, 18(7):1527-1554, 2006. (21 J. Howard and $. Ruder. Universal language model fine-tuning for text classification. Association for Computational Linguistics (ACL), 2018. [22] Y. Jemite, S. R. Bowman, and D. Sontag.",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 456
+    },
+    {
+      "chunk_id": 82,
+      "text": "Jemite, S. R. Bowman, and D. Sontag. Discourse-based objectives for fast unsupervised sentence representation learning. arXiv preprint arXiv:1705.00557, 2017. [23] Y. Jiand J. Eisenstein. Discriminative improvements to distributional sentence similarity. In Proceedings of the 2013 Conference on Empirical Methods in Natural Language Processing, pages 891-896, 2013",
+      "page_number": 9,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 365
+    },
+    {
+      "chunk_id": 83,
+      "text": "[24] [25] [26] [27] [28] [29] [30] [31] [32] [33] [34] [35] [36] 137] [38] [39] [40] [41] [42] [43] [44] [45] F. Jiao, S. Wang, C.-H. Lee, R. Greiner, and D. Schuurmans. Semi-supervised conditional random fields for improved sequence segmentation and labeling. In Proceedings of the 21st International Conference on Computational Linguistics and the 44th annual meeting of the Association for Computational Linguistics, pages 209-216. Association for Computational Linguistics, 2006. T. Khot, A.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 495
+    },
+    {
+      "chunk_id": 84,
+      "text": "T. Khot, A. Sabharwal, and P. Clark. Scitail: A textual entailment dataset from science question answering. In Proceedings of AAAI, 2018. Y. Kim. Convolutional neural networks for sentence classification. EMNLP, 2014. D. P. Kingma and J. Ba. Adam: A method for stochastic optimization. arXiv preprint arXiv:1412.6980, 2014. R. Kiros, Y. Zhu, R. R. Salakhutdinov, R. Zemel, R. Urtasun, A. Torralba, and S. Fidler. Skip-thought vectors. In Advances in neural information processing systems, pages 3294-3302, 2015. N.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 514
+    },
+    {
+      "chunk_id": 85,
+      "text": "N. Kitaev and D. Klein, Constituency parsing with a self-attentive encoder. ACL, 2018. G. Lai, Q. Xie, H. Liu, Y. Yang, and E. Hovy. Race: Large-scale reading comprehension dataset from examinations. EMNLP, 2017. G. Lample, L. Denoyer, and M. Ranzato. Unsupervised machine translation using monolingual corpora only. ICLR, 2018. Q. Le and T. Mikolov. Distributed representations of sentences and documents. In International Conference \u2018on Machine Learning, pages 1188-1196, 2014. P. Liang.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 489
+    },
+    {
+      "chunk_id": 86,
+      "text": "P. Liang. Semi-supervised learning for natural language. PhD thesis, Massachusetts Institute of Technology, 2005. P. J. Liu, M. Saleh, E. Pot, B. Goodrich, R. Sepassi, L. Kaiser, and N. Shazeer, Generating wikipedia by summarizing long sequences. ICLR, 2018. X. Liu, K. Duh, and J. Gao. Stochastic answer networks for natural language inference. arXiv preprint arXiv: 1804.07888, 2018. L. Logeswaran and H. Lee. An efficient framework for learning sentence representations. JCLR, 2018. I. Loshchilov and F. Hutter.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 514
+    },
+    {
+      "chunk_id": 87,
+      "text": "JCLR, 2018. I. Loshchilov and F. Hutter. Fixing weight decay regularization in adam. arXiv preprint arXiv:1711.05101, 2017. B. McCann, J. Bradbury, C. Xiong, and R. Socher. Learned in translation: Contextualized word vectors. In Advances in Neural Information Processing Systems, pages 6297-6308, 2017. T. Mikoloy, I. Sutskever, K. Chen, G. S. Corrado, and J. Dean. Distributed representations of words and phrases and their compositionality. In Advances in neural information processing systems, pages 3111-3119, 2013.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 519
+    },
+    {
+      "chunk_id": 88,
+      "text": "N. Mostafazadeh, M. Roth, A. Louis, N. Chambers, and J, Allen, Lsdsem 2017 shared task: The story cloze test. In Proceedings of the 2nd Workshop on Linking Models of Lexical, Sentential and Discourse-level Semantics, pages 46-51, 2017. K. Nigam, A. McCallum, and T. Mitchell. Semi-supervised text classification using em. Semi-Supervised Learning, pages 33-56, 2006. J. Pennington, R. Socher, and C. Manning. Glove: Global vectors for word representation.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 455
+    },
+    {
+      "chunk_id": 89,
+      "text": "Glove: Global vectors for word representation. In Proceedings of the 2014 conference on empirical methods in natural language processing (EMNLP), pages 1532-1543, 2014. M. E, Peters, W. Ammar, C. Bhagavatula, and R. Power. Semi-supervised sequence tagging with bidirec- tional language models. ACL, 2017. M. E. Peters, M. Neumann, M. Iyyer, M. Gardner, C. Clark, K. Lee, and L. Zettlemoyer. Deep contextual- ized word representations. NAACL, 2018. Y. Qi, D. S. Sachan, M. Felix, S. J. Padmanabhan, and G. Neubig.",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 512
+    },
+    {
+      "chunk_id": 90,
+      "text": "S. Sachan, M. Felix, S. J. Padmanabhan, and G. Neubig. When and why are pre-trained word embeddings useful for neural machine translation? NAACL, 2018. 10",
+      "page_number": 10,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 154
+    },
+    {
+      "chunk_id": 91,
+      "text": "[46] [47] [48] 149] [50] 51] [52] 153] [54] 155] [56] [57] 158] [59] [60] [61] [62] [63] [64] [65] [66] [67] \u2018A. Rahman and V. Ng. Resolving complex cases of definite pronouns: the winograd schema challenge. In Proceedings of the 2012 Joint Conference on Empirical Methods in Natural Language Processing and Computational Natural Language Learning, pages 777-789. Association for Computational Linguistics, 2012. P. Rajpurkar, J. Zhang, K. Lopyrev, and P. Liang.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 462
+    },
+    {
+      "chunk_id": 92,
+      "text": "P. Rajpurkar, J. Zhang, K. Lopyrev, and P. Liang. Squad: 100,000+ questions for machine comprehension of text. EMNLP, 2016. P, Ramachandran, P. J. Liu, and Q. V. Le. Unsupervised pretraining for sequence to sequence learning. arXiv preprint arXiv:1611.02683, 2016. M. Ranzato, C. Poultney, S. Chopra, and Y. LeCun. Efficient learning of sparse representations with an energy-based model. In Advances in neural information processing systems, pages 1137-1144, 2007. M. Rei.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 472
+    },
+    {
+      "chunk_id": 93,
+      "text": "M. Rei. Semi-supervised multitask learning for sequence labeling. ACL, 2017. H. Robbins and S. Monro. A stochastic approximation method. The annals of mathematical statistics, pages 400-407, 1951. T. Rocktiischel, E. Grefenstette, K. M. Hermann, T. Kodisky, and P. Blunsom. Reasoning about entailment with neural attention. arXiv preprint arXiv: 1509.06664, 2015. R. Sennrich, B. Haddow, and A. Birch. Neural machine translation of rare words with subword units. arXiv preprint arXiv:1508.07909, 2015. R. Socher, A.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 515
+    },
+    {
+      "chunk_id": 94,
+      "text": "R. Socher, A. Perelygin. J. Wu, J. Chuang, C. D. Manning, A. Ng, and C. Potts. Recursive deep models for semantic compositionality over a sentiment treebank. In Proceedings of the 2013 conference on empirical methods in natural language processing, pages 1631-1642, 2013. S. Srinivasan, R. Arora, and M. Riedl. A simple and effective approach to the story cloze test. arXiv preprint arXiv: 1803.05547, 2018. S. Subramanian, A. Trischler, Y. Bengio, and C. J. Pal.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 463
+    },
+    {
+      "chunk_id": 95,
+      "text": "S. Subramanian, A. Trischler, Y. Bengio, and C. J. Pal. Learning general purpose distributed sentence representations via large scale multi-task learning. arXiv preprint arXiv:1804.00079, 2018. J. Suzuki and H. Isozaki. Semi-supervised sequential labeling and segmentation using giga-word scale unlabeled data. Proceedings of ACL-O8: HLT, pages 665-673, 2008. Y. Tay, L. A. Tuan, and S. C. Hui.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 394
+    },
+    {
+      "chunk_id": 96,
+      "text": "Y. Tay, L. A. Tuan, and S. C. Hui. A compare-propagate architecture with alignment factorization for natural language inference. arXiv preprint arXiv: 1801.00102, 2017. Y. Tay, L. A. Tuan, and S. C. Hui. Multi-range reasoning for machine comprehension. arXiv preprint arXiv: 1803.09074, 2018. J. Tian, Z. Zhou, M. Lan, and Y. Wu. Ecnu at semeval-2017 task 1: Leverage kernel-based traditional nlp features and neural networks to build a universal model for multilingual and cross-lingual semantic textual similarity.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 516
+    },
+    {
+      "chunk_id": 97,
+      "text": "In Proceedings of the LIth International Workshop on Semantic Evaluation (SemEval-2017), pages 191-197, 2017. Y. Tsvetkov. Opportunities and challenges in working with low-resource languages. CMU, 2017. A. Vaswani, N. Shazeer, N. Parmar, J. Uszkoreit, L. Jones, A. N. Gomez, \u00a3. Kaiser, and I. Polosukhin. Attention is all you need. In Advances in Neural Information Processing Systems, pages 6000-6010. 2017. P. Vincent, H. Larochelle, Y. Bengio, and P.-A. Manzagol.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 466
+    },
+    {
+      "chunk_id": 98,
+      "text": "Larochelle, Y. Bengio, and P.-A. Manzagol. Extracting and composing robust features with denoising autoencoders. In Proceedings of the 25th international conference on Machine learning, pages 1096-1103. ACM, 2008. \u2018A. Wang, A. Singh, J. Michael, F. Hill, O. Levy, and S. R. Bowman, Glue: A multi-task benchmark and analysis platform for natural language understanding. arXiv preprint arXiv:1804.07461, 2018. \u2018A. Warstadt, A. Singh, and S, R. Bowman.",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 449
+    },
+    {
+      "chunk_id": 99,
+      "text": "Warstadt, A. Singh, and S, R. Bowman. Corpus of linguistic acceptability. http://nyu-mll.github.io/cola, 2018. A. Williams, N. Nangia, and S. R. Bowman. A broad-coverage challenge corpus for sentence understanding through inference. NAACL, 2018. Y. Xu, J. Liu, J. Gao, Y. Shen, and X. Liu. Towards human-level machine reading comprehension: Reasoning and inference with multiple strategies. arXiv preprint arXiv:1711.04964, 2017 ll",
+      "page_number": 11,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 431
+    },
+    {
+      "chunk_id": 100,
+      "text": "[68] [69] [70] (71) D. Yu, L. Deng, and G. Dahl. Roles of pre-training and fine-tuning in context-dependent dbn-hmms for real-world speech recognition. In Proc. NIPS Workshop on Deep Learning and Unsupervised Feature Learning, 2010. R. Zhang, P. Isola, and A. A. Efros. Split-brain autoencoders: Unsupervised learning by cross-channel prediction. In CVPR, volume 1, page 6, 2017. X. Zhu, Semi-supervised learning literature survey. 2005 Y. Zhu, R. Kiros, R. Zemel Jakhutdinov, R. Urtasun, A. Torralba, and S.",
+      "page_number": 12,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 508
+    },
+    {
+      "chunk_id": 101,
+      "text": "Zemel Jakhutdinov, R. Urtasun, A. Torralba, and S. Fidler, Aligning books and movies: Towards story-like visual explanations by watching movies and reading books. In Proceedings of the IEEE international conference on computer vision, pages 19-27, 2015. 12",
+      "page_number": 12,
+      "paper": "Improving Language Understanding By Generative Pre-Training",
+      "char_count": 256
+    }
+  ],
+  "stats": {
+    "total_pages": 12,
+    "total_chunks": 102,
+    "avg_chunk_size": 408.12745098039215,
+    "ocr_pages": 12
+  }
+}
